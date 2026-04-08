@@ -1,0 +1,11 @@
+model_name_or_path: llama2-7b-hf
+tokenizer_name: llama2-7b-hf
+dataset_name: /root/autodl-tmp/tokenized_datasets/fineweb_llama2
+
+num_layers: 32
+num_experts: 64
+intermediate_size: 11008
+expert_intermediate_size: 1408
+num_attention_head: 32
+
+prunable_module: head,intermediate

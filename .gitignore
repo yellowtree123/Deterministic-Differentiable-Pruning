@@ -1,2 +1,8 @@
 *.safetensors
 *.parquet
+*.arrow
+*.pyc
+tokenized_datasets
+runs
+cache
+log_pruning
