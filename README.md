@@ -1,6 +1,6 @@
 # Deterministic-Differentiable-Pruning
 
-Structured pruning of large language models via learnable L0 masks with Lagrangian relaxation and knowledge distillation. All model weights are frozen -- only lightweight mask parameters are trained to decide which attention heads and MLP intermediate dimensions to remove. We can chech out our paper at [Deterministic Differentiable Structured Pruning for Large Language Models](https://arxiv.org/abs/2603.08065).
+Structured pruning of large language models via learnable L0 masks with Lagrangian relaxation and knowledge distillation. All model weights are frozen -- only lightweight mask parameters are trained to decide which attention heads and MLP intermediate dimensions to remove. You can check out our paper at [Deterministic Differentiable Structured Pruning for Large Language Models](https://arxiv.org/abs/2603.08065).
 
 Supported architectures: **LLaMA / LLaMA-2**, **Qwen3**, **DeepSeek-MoE**.
 
