@@ -2,7 +2,9 @@
 *.parquet
 *.arrow
 *.pyc
+.autodl
 tokenized_datasets
 runs
 cache
 log_pruning
+*.ipynb

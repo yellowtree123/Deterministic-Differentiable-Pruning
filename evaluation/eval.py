@@ -23,13 +23,6 @@ def lightning_prune_qwen_expert(model):
     expert_z = sd['module.l0_module.masks.expert.z_loga']
     expert_z = F.relu(expert_z) 
 
-
-    # import math
-    # limit_a, limit_b, epsilon = -.1, 1.1, 1e-6
-    # expert_z=  torch.sigmoid( expert_z *3)
-    # expert_z = expert_z * (limit_b - limit_a) + limit_a
-    # expert_z= torch.clamp(expert_z, min=0, max=1)
-
     pat1 = re.compile(r"layers\.(\d+)\.mlp\.experts")
     pat2 = re.compile(r"\.experts\.(\d+)")
 
@@ -53,9 +46,6 @@ def lightning_prune_qwen_expert(model):
         down = module.down_proj
         z = expert_z[layer_num,expert_num].to(device=down.weight.device, dtype=down.weight.dtype)
 
-        # print(z.shape)
-        # print(down.weight.shape)
-        # print(name)
         with torch.no_grad():    
             down.weight.mul_(z)           # broadcast to [E, 1, I]
 
@@ -73,12 +63,7 @@ def lightning_prune_qwen_dense(model, mask_path):
     print( (head_z>0).sum() / head_z.numel() )
     print( (intermediate_z>0).sum() / intermediate_z.numel() )
 
-
-
-
     from transformers.models.qwen3.modeling_qwen3 import Qwen3Attention, Qwen3MLP
-
-
 
     with torch.no_grad():
         for name, module in model.named_modules():
@@ -160,8 +145,8 @@ def lightning_prune_llama_dense(model, mask_path):
     import torch    
     print("Loading mask from ", mask_path)
     sd = torch.load(mask_path)
-    head_z = sd['l0_module.masks.head.z_loga'].to(torch.bfloat16)
-    intermediate_z = sd['l0_module.masks.intermediate.z_loga'].to(torch.bfloat16)
+    head_z = sd['module.l0_module.masks.head.z_loga'].to(torch.bfloat16)
+    intermediate_z = sd['module.l0_module.masks.intermediate.z_loga'].to(torch.bfloat16)
     head_z = F.relu(head_z) 
     intermediate_z = F.relu(intermediate_z) 
 
@@ -174,10 +159,6 @@ def lightning_prune_llama_dense(model, mask_path):
     import torch
 
     from transformers.models.llama.modeling_llama import LlamaAttention, LlamaMLP
-
-
-
-
     for name, module in model.named_modules():
 
 
@@ -271,11 +252,8 @@ def main():
 
     model.use_cache = False
 
-    # pruning_global(model, config, args, logger)
-    # lightning_prune(model)
     device = args.device
     # lightning_prune_qwen_dense(model, args.mask_path)
-    # lightning_prune_qwen_dense_hc(model, args.mask_path)
     lightning_prune_llama_dense(model, args.mask_path)
     model = model.to(device)
     model.half()
