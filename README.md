@@ -39,7 +39,7 @@ Supported architectures: **LLaMA / LLaMA-2**, **Qwen3**, **DeepSeek-MoE**.
 ### 1. Clone the repository (with submodules)
 
 ```bash
-git clone --recurse-submodules https://github.com/<your-username>/Deterministic-Differentiable-Pruning.git
+git clone --recurse-submodules https://github.com/yellowtree123/Deterministic-Differentiable-Pruning.git
 cd Deterministic-Differentiable-Pruning
 ```
 
