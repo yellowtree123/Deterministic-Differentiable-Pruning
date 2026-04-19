@@ -1,6 +1,6 @@
 # Deterministic-Differentiable-Pruning
 
-Structured pruning of large language models via learnable L0 masks with Lagrangian relaxation and knowledge distillation. All model weights are frozen -- only lightweight mask parameters are trained to decide which attention heads and MLP intermediate dimensions to remove.
+Structured pruning of large language models via learnable L0 masks with Lagrangian relaxation and knowledge distillation. All model weights are frozen -- only lightweight mask parameters are trained to decide which attention heads and MLP intermediate dimensions to remove. Our paper is at [Deterministic Differentiable Structured Pruning for Large Language Models](https://arxiv.org/abs/2603.08065).
 
 Supported architectures: **LLaMA / LLaMA-2**, **Qwen3**, **DeepSeek-MoE**.
 
@@ -77,15 +77,7 @@ The full pipeline has four steps:
 
 ### Step 0: Prepare model and dataset
 
-Download LLaMA-7B weights and a training dataset. The example below uses [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu):
-
-```bash
-# Download model (example using huggingface-cli)
-huggingface-cli download huggyllama/llama-7b --local-dir ./llama-7b-hf
-
-# Download dataset
-huggingface-cli download HuggingFaceFW/fineweb-edu --local-dir ./fineweb-edu-100M
-```
+Download LLaMA-7B weights and a training dataset. The example below uses a subset of [FineWeb-Edu](https://huggingface.co/datasets/codelion/fineweb-edu-100M):
 
 ---
 
@@ -99,31 +91,17 @@ Edit `preprocess_dataset/tokenize.sh` to set your paths, then run:
 bash preprocess_dataset/tokenize.sh
 ```
 
-Or run the tokenizer directly:
-
-```bash
-python preprocess_dataset/tokenize_dataset.py \
-  --dataset_name ./fineweb-edu-100M \
-  --tokenizer_name ./llama-7b-hf \
-  --block_size 2048 \
-  --validation_split_percentage 1 \
-  --preprocessing_num_workers 8 \
-  --cache_dir ./cache \
-  --output_dir ./tokenized_datasets/fineweb_llama \
-  --trust_remote_code
-```
-
 This produces a HuggingFace `datasets` directory at `./tokenized_datasets/fineweb_llama` with `train` and `validation` splits, where each sample has `input_ids` and `labels` of length `block_size`.
 
 **Key arguments:**
 
-| Argument | Description |
-|---|---|
-| `--dataset_name` | Path to raw dataset (local or HuggingFace hub name) |
-| `--tokenizer_name` | Path to tokenizer (must match the model you will prune) |
-| `--block_size` | Sequence length for chunking (default: model max, recommended: 2048) |
-| `--validation_split_percentage` | Percentage of data to hold out for validation |
-| `--output_dir` | Where to save the tokenized dataset |
+| Argument                        | Description                                                  |
+| ------------------------------- | ------------------------------------------------------------ |
+| `--dataset_name`                | Path to raw dataset (local or HuggingFace hub name)          |
+| `--tokenizer_name`              | Path to tokenizer (must match the model you will prune)      |
+| `--block_size`                  | Sequence length for chunking (default: model max, recommended: 2048) |
+| `--validation_split_percentage` | Percentage of data to hold out for validation                |
+| `--output_dir`                  | Where to save the tokenized dataset                          |
 
 ---
 
@@ -137,49 +115,44 @@ tokenizer_name: ./llama-7b-hf
 dataset_name: ./tokenized_datasets/fineweb_llama
 
 num_layers: 32
-num_experts: 64
 intermediate_size: 11008
-expert_intermediate_size: 1408
 num_attention_head: 32
 
 prunable_module: head,intermediate
 ```
 
+For MoE models like Deepseek-MoE-16B-Base change the yaml accordingly:
+
+```yaml
+num_layers: 27
+num_experts: 64
+expert_intermediate_size: 1408
+
+prunable_module: expert
+```
+
 Launch training with:
 
 ```bash
-CONFIG_FILE=./configs/llama-7b-hf.yaml bash train.sh
-```
-
-Or override hyperparameters via environment variables:
-
-```bash
-CONFIG_FILE=./configs/llama-7b-hf.yaml \
-TARGET_SPARSITY=0.20 \
-NPROC_PER_NODE=4 \
-PER_DEVICE_BS=2 \
-GRAD_ACC=2 \
-WARMUP_STEPS=100 \
-EVAL_STEPS=100 \
-bash train.sh
+bash train.sh ./configs/llama-7b-hf.yaml
 ```
 
 The default configuration in `train.sh` runs a single sweep: 1000 steps, target sparsity 0.20, with distillation enabled. Checkpoints (containing only the learned mask parameters) are saved every 50 steps to `./runs/<model>_<timestamp>/<tag>/step_<N>/trainable_params.pt`.
 
 **Key environment variables for `train.sh`:**
 
-| Variable | Default | Description |
-|---|---|---|
-| `CONFIG_FILE` | `./configs/llama-7b-hf.yaml` | Path to model/data config |
-| `TARGET_SPARSITY` | `0.60` | Target fraction of parameters to prune (0.20 = remove 20%) |
-| `NPROC_PER_NODE` | `4` | Number of GPUs |
-| `PER_DEVICE_BS` | `2` | Per-device training batch size |
-| `GRAD_ACC` | `2` | Gradient accumulation steps |
-| `WARMUP_STEPS` | `100` | LR warmup steps |
-| `EVAL_STEPS` | `100` | Evaluate every N optimizer steps |
-| `RATIO` | `2.0` | Distillation loss coefficient |
-| `TAU` | `1.0` | Distillation temperature |
-| `SEED` | `42` | Random seed |
+| Variable          | Default                      | Description                                                |
+| ----------------- | ---------------------------- | ---------------------------------------------------------- |
+| `CONFIG_FILE`     | `./configs/llama-7b-hf.yaml` | Path to model/data config                                  |
+| `TARGET_SPARSITY` | `0.60`                       | Target fraction of parameters to prune (0.20 = remove 20%) |
+| `NPROC_PER_NODE`  | `4`                          | Number of GPUs                                             |
+| `PER_DEVICE_BS`   | `2`                          | Per-device training batch size                             |
+| `GRAD_ACC`        | `2`                          | Gradient accumulation steps                                |
+| `WARMUP_STEPS`    | `100`                        | LR warmup steps                                            |
+| `EVAL_STEPS`      | `100`                        | Evaluate every N optimizer steps                           |
+| `RATIO`           | `2.0`                        | Distillation loss coefficient                              |
+| `TAU`             | `1.0`                        | Distillation temperature                                   |
+| `SEED`            | `42`                         | Random seed                                                |
 
 **What happens during training:**
 - All model weights are **frozen** -- only mask parameters (`z_loga`) and Lagrangian dual variables are optimized.
@@ -213,14 +186,14 @@ This first computes WikiText-2 perplexity, then runs the specified `lm-eval` zer
 
 **Key arguments:**
 
-| Argument | Description |
-|---|---|
-| `--model_path` | Path to the original (unpruned) model |
-| `--mask_path` | Path to `trainable_params.pt` from training |
-| `--zero_shot` | Run zero-shot benchmarks via lm-eval |
-| `--tasks` | Space-separated list of lm-eval task names |
-| `--eval_batchsize` | Batch size for zero-shot evaluation |
-| `--device` | Device to use (e.g. `cuda:0`) |
+| Argument           | Description                                 |
+| ------------------ | ------------------------------------------- |
+| `--model_path`     | Path to the original (unpruned) model       |
+| `--mask_path`      | Path to `trainable_params.pt` from training |
+| `--zero_shot`      | Run zero-shot benchmarks via lm-eval        |
+| `--tasks`          | Space-separated list of lm-eval task names  |
+| `--eval_batchsize` | Batch size for zero-shot evaluation         |
+| `--device`         | Device to use (e.g. `cuda:0`)               |
 
 ---
 
@@ -254,12 +227,12 @@ model = AutoModelForCausalLM.from_pretrained("./llama-7b-hf-pruned")
 
 **Key arguments:**
 
-| Argument | Description |
-|---|---|
-| `--state_dict_path` | Path to `trainable_params.pt` from training |
-| `--model_name_or_path` | Path to the original dense model |
-| `--output_dir` | Where to save the pruned model |
-| `--safe_serialization` | Save in safetensors format |
+| Argument               | Description                                 |
+| ---------------------- | ------------------------------------------- |
+| `--state_dict_path`    | Path to `trainable_params.pt` from training |
+| `--model_name_or_path` | Path to the original dense model            |
+| `--output_dir`         | Where to save the pruned model              |
+| `--safe_serialization` | Save in safetensors format                  |
 
 ---
 
@@ -267,14 +240,14 @@ model = AutoModelForCausalLM.from_pretrained("./llama-7b-hf-pruned")
 
 The YAML config file (e.g. `configs/llama-7b-hf.yaml`) defines model architecture and data paths:
 
-| Field | Description | LLaMA-7B Value |
-|---|---|---|
-| `model_name_or_path` | Path to pretrained model | `./llama-7b-hf` |
-| `tokenizer_name` | Path to tokenizer | `./llama-7b-hf` |
-| `dataset_name` | Path to pre-tokenized dataset | `./tokenized_datasets/fineweb_llama` |
-| `num_layers` | Number of transformer layers | `32` |
-| `intermediate_size` | MLP intermediate dimension | `11008` |
-| `num_attention_head` | Number of attention heads | `32` |
-| `num_experts` | Number of MoE experts (set for MoE models) | `64` |
-| `expert_intermediate_size` | Expert MLP dimension (set for MoE models) | `1408` |
-| `prunable_module` | Comma-separated modules to prune: `head`, `intermediate`, `expert` | `head,intermediate` |
+| Field                      | Description                                                  | LLaMA-7B Value                       |
+| -------------------------- | ------------------------------------------------------------ | ------------------------------------ |
+| `model_name_or_path`       | Path to pretrained model                                     | `./llama-7b-hf`                      |
+| `tokenizer_name`           | Path to tokenizer                                            | `./llama-7b-hf`                      |
+| `dataset_name`             | Path to pre-tokenized dataset                                | `./tokenized_datasets/fineweb_llama` |
+| `num_layers`               | Number of transformer layers                                 | `32`                                 |
+| `intermediate_size`        | MLP intermediate dimension                                   | `11008`                              |
+| `num_attention_head`       | Number of attention heads                                    | `32`                                 |
+| `num_experts`              | Number of MoE experts (set for MoE models)                   | `64`                                 |
+| `expert_intermediate_size` | Expert MLP dimension (set for MoE models)                    | `1408`                               |
+| `prunable_module`          | Comma-separated modules to prune: `head`, `intermediate`, `expert` | `head,intermediate`                  |
