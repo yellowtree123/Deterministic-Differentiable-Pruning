@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
     actual_prune(model, head_z, intermediate_z)
     model = model.to(torch.bfloat16)
-    sd = {"model": model.state_dict()}
+    sd = {"model": model}
     import os
     os.makedirs(args.output_dir, exist_ok=True)
     torch.save(sd, f"{args.output_dir}/pytorch_model.bin", _use_new_zipfile_serialization=not args.safe_serialization)
