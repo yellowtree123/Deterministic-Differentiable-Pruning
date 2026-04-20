@@ -226,9 +226,9 @@ This script:
 The output is a standard HuggingFace model directory that can be loaded directly:
 
 ```python
-from transformers import AutoModelForCausalLM
+import torch
 
-model = AutoModelForCausalLM.from_pretrained("./llama-7b-hf-pruned")
+model = torch.load("./llama-7b-hf-pruned/pytorch_model.bin",weights_only=False)['model']
 ```
 
 **Key arguments:**
