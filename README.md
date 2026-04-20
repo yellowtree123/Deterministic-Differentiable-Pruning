@@ -199,7 +199,13 @@ This first computes WikiText-2 perplexity, then runs the specified `lm-eval` zer
 
 ### Step 4: Structural pruning (save the pruned model)
 
-Once you are satisfied with the evaluation results, physically remove the pruned weights to produce a smaller model:
+Once you are satisfied with the evaluation results, physically remove the pruned weights to produce a smaller model, use pruning.sh script and specify your mask path and model path:
+
+```bash
+bash pruning.sh
+```
+
+or directly run prune_and_save.py
 
 ```bash
 python actual_prune/prune_and_save.py \
