@@ -157,10 +157,12 @@ if __name__ == "__main__":
     model = AutoModelForCausalLM.from_pretrained(
         args.model_name_or_path,
         trust_remote_code=args.trust_remote_code,
+        torch_dtype=torch.bfloat16,
     )
 
     actual_prune(model, head_z, intermediate_z)
-    model.save_pretrained(
-        args.output_dir,
-        safe_serialization=args.safe_serialization,
-    )
+    model = model.to(torch.bfloat16)
+    sd = {"model": model.state_dict()}
+    import os
+    os.makedirs(args.output_dir, exist_ok=True)
+    torch.save(sd, f"{args.output_dir}/pytorch_model.bin", _use_new_zipfile_serialization=not args.safe_serialization)
