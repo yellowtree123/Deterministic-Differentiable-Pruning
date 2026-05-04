@@ -4,7 +4,7 @@ Structured pruning of large language models via learnable L0 masks with Lagrangi
 
 Supported architectures: **LLaMA / LLaMA-2**, **Qwen3**, **DeepSeek-MoE**.
 
-### News: Our paper is accepted as a regular paper at ICML26, you can check out our paper at [Deterministic Differentiable Structured Pruning for Large Language Models](https://arxiv.org/abs/2603.08065).
+#### News: Our paper is accepted as a regular paper at ICML26, you can check out our paper at [Deterministic Differentiable Structured Pruning for Large Language Models](https://arxiv.org/abs/2603.08065).
 
 ---
 
